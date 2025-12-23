@@ -25,7 +25,7 @@ params = {"sigma_eps" : 0.005, "sigma_mu" : 0.05, "t_c": 0.001, "gamma" : 0.01,
           "alpha_3": 1, "v_1": 2, "v_2": 0.6, "dt": 0.002}
 
 # Load the data from simul0
-with open("./files/tmp/simul20251223_120046.pkl", "rb") as f:
+with open("./files/tmp/simul20251223_140247.pkl", "rb") as f:
     history = pickle.load(f)
 totalT = len(history["prices"])
 time = np.arange(0, totalT, 1)

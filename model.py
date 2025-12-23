@@ -2,12 +2,20 @@ import numpy as np
 from tqdm import tqdm
 
 
+class Agent:
+    def __init__(self, id, agent_type="fundamentalist"):
+        self.id = id
+        self.type = agent_type  # "p", "m", "f"
+        self.neighbors = []     # 隣接ノードリスト
+
+
 class LuxMarchesiModel:
-    def __init__(self, state, params):
+    def __init__(self, state, params, agents):
         self.state = state.copy()
         self.params = params.copy()
         self.last_prices = [self.state["p"]]
         self.price_change = 0
+        self.agents = agents 
 
     def excessDemand(self):
         """
@@ -73,7 +81,7 @@ class LuxMarchesiModel:
         
         return
               
-    def updateGroups(self):
+    def updateGroups(self, agent):
         """
         Fluxes between the fundamentalists and the noise traders
         """
@@ -81,9 +89,9 @@ class LuxMarchesiModel:
         R = self.params["R"]
         p_f = self.state["p_f"]
         p = self.state["p"]
-        n_p = self.state["n_p"]
-        n_m = self.state["n_m"]
-        n_f = self.state["n_f"]
+        n_p_local = sum(1 for a in agent.neighbors if a.type=="p")
+        n_m_local = sum(1 for a in agent.neighbors if a.type=="m")
+        n_f_local = sum(1 for a in agent.neighbors if a.type=="f")
         price_change = self.price_change
         alpha_3 = self.params["alpha_3"]
         v_2 = self.params["v_2"]
@@ -92,8 +100,8 @@ class LuxMarchesiModel:
 
         # Compute other parameters
         r = R*p_f
-        N = n_p + n_m + n_f
-        threshold = 0.008 * N
+        N_local = n_p_local + n_m_local + n_f_local
+        threshold = 0.008 * N_local
 
         # Compute the forcing terms
         x = (r + price_change/v_2)/p - R
@@ -102,41 +110,60 @@ class LuxMarchesiModel:
         U_22 = alpha_3*(-x-y)
 
         # Compute the probabilities
-        pi_pf = v_2 * (n_p / N) * np.exp(U_21) * dt
-        pi_fp = v_2 * (n_f / N) * np.exp(-U_21) * dt
-        pi_mf = v_2 * (n_m / N) * np.exp(U_22) * dt
-        pi_fm = v_2 * (n_f / N) * np.exp(-U_22) * dt
+        pi_pf = v_2 * (n_p_local / N_local) * np.exp(U_21) * dt
+        pi_fp = v_2 * (n_f_local / N_local) * np.exp(-U_21) * dt
+        pi_mf = v_2 * (n_m_local / N_local) * np.exp(U_22) * dt
+        pi_fm = v_2 * (n_f_local / N_local) * np.exp(-U_22) * dt
 
         # Compute the fluxes
-        n_pf = np.random.binomial(n_f, pi_pf)
-        n_fp = np.random.binomial(n_p, pi_fp)
-        n_mf = np.random.binomial(n_f, pi_mf)
-        n_fm = np.random.binomial(n_p, pi_fm)
+        n_pf = np.random.binomial(n_f_local, pi_pf)
+        n_fp = np.random.binomial(n_p_local, pi_fp)
+        n_mf = np.random.binomial(n_f_local, pi_mf)
+        n_fm = np.random.binomial(n_p_local, pi_fm)
 
         # Corrections to avoid vanishing groups
-        if n_p - n_fp < threshold:
+        if n_p_local - n_fp < threshold:
           n_fp = 0  
-        if n_f - n_pf - n_mf < threshold:
+        if n_f_local - n_pf - n_mf < threshold:
           n_pf = 0  
           n_mf = 0  
-        if n_m - n_fm < threshold:
+        if n_m_local - n_fm < threshold:
           n_fm = 0
 
         # Update the groups
-        self.state["n_p"] = n_p + n_pf - n_fp
-        self.state["n_f"] = n_f + n_fp + n_fm - n_pf - n_mf
-        self.state["n_m"] = n_m + n_mf - n_fm
+        neighbors_f = [a for a in agent.neighbors if a.type=="f"]
+        neighbors_p = [a for a in agent.neighbors if a.type=="p"]
+        neighbors_m = [a for a in agent.neighbors if a.type=="m"]
 
+
+        # Shuffle lists to randomly select
+        np.random.shuffle(neighbors_f)
+        np.random.shuffle(neighbors_p)
+        np.random.shuffle(neighbors_m)
+
+        # f -> p and f -> m
+        for a in neighbors_f[:n_pf]:
+            a.type = "p"
+        for a in neighbors_f[n_pf:n_pf + n_mf]:
+            a.type = "m"
+
+        # p -> f
+        for a in neighbors_p[:n_fp]:
+            a.type = "f"
+
+        # m -> f
+        for a in neighbors_m[:n_fm]:
+            a.type = "f"
         return
   
-    def updateChartists(self):
+    def updateChartists(self, agent):
         """
         Changes of opinion of the noise traders
         """
         p = self.state["p"]
-        n_p = self.state["n_p"]
-        n_m = self.state["n_m"]
-        n_f = self.state["n_f"]
+        n_p_local = sum(1 for a in agent.neighbors if a.type=="p")
+        n_m_local = sum(1 for a in agent.neighbors if a.type=="m")
+        n_f_local = sum(1 for a in agent.neighbors if a.type=="f")
         price_change = self.price_change
         alpha_1 = self.params["alpha_1"]
         alpha_2 = self.params["alpha_2"]
@@ -144,28 +171,39 @@ class LuxMarchesiModel:
         dt = self.params["dt"]
 
         # Compute the forcing terms
-        x = (n_p - n_m)/(n_p + n_m) # opinion index
-        N = n_p + n_m + n_f
+        x = (n_p_local - n_m_local)/(n_p_local + n_m_local) # opinion index
+        N_local = n_p_local + n_m_local + n_f_local
         price_trend = price_change/p
         U_1 = alpha_1*x + alpha_2*price_trend/v_1
         
         # Compute the probabilities
-        pi_pm = v_1*(n_p + n_m)/N*np.exp(U_1)  * dt
-        pi_mp = v_1*(n_p + n_m)/N*np.exp(-U_1) * dt
+        pi_pm = v_1*(n_p_local + n_m_local)/N_local*np.exp(U_1)  * dt
+        pi_mp = v_1*(n_p_local + n_m_local)/N_local*np.exp(-U_1) * dt
 
         # Compute the fluxes
-        n_pm = np.random.binomial(n_m, pi_pm) # From m to p
-        n_mp = np.random.binomial(n_p, pi_mp) # From p to m
+        n_pm = np.random.binomial(n_m_local, pi_pm) # From m to p
+        n_mp = np.random.binomial(n_p_local, pi_mp) # From p to m
 
         # Corrections to avoid vanishing groups
-        if n_p - n_mp < 0.008 * N:
+        if n_p_local - n_mp < 0.008 * N_local:
             n_mp = 0
-        if n_m - n_pm < 0.008 * N:
+        if n_m_local - n_pm < 0.008 * N_local:
             n_pm = 0
 
         # Update the groups
-        self.state["n_p"] = n_p + n_pm - n_mp
-        self.state["n_m"] = n_m + n_mp - n_pm
+        neighbors_m = [a for a in agent.neighbors if a.type=="m"]
+        neighbors_p = [a for a in agent.neighbors if a.type=="p"]
+
+        np.random.shuffle(neighbors_m)
+        np.random.shuffle(neighbors_p)
+
+        # m -> p
+        for a in neighbors_m[:n_pm]:
+            a.type = "p"
+
+        # p -> m
+        for a in neighbors_p[:n_mp]:
+            a.type = "m"
 
         return
     
@@ -173,8 +211,17 @@ class LuxMarchesiModel:
         """
         Defines one full step of the model
         """
-        self.updateChartists()
-        self.updateGroups()
+        for agent in self.agents:
+            self.updateChartists(agent)
+            self.updateGroups(agent)
+
+        n_p = sum(1 for a in self.agents if a.type=="p")
+        n_m = sum(1 for a in self.agents if a.type=="m")
+        n_f = sum(1 for a in self.agents if a.type=="f")
+        self.state["n_p"] = n_p
+        self.state["n_m"] = n_m
+        self.state["n_f"] = n_f
+
         self.changePrice()
         self.changeFundamental()
         return
@@ -196,19 +243,14 @@ class LuxMarchesiModel:
         # Simulate the model
         for i in tqdm(range(n)):
             for _ in range(delay):
-                # Simulate one step
-                self.updateChartists()
-                self.updateGroups()
-                self.changePrice()
-            # Update the fundamental
-            self.changeFundamental()
+                self.oneStep()
 
-            # Store the data
-            prices[i] = self.state["p"]
-            fundamentals[i] = self.state["p_f"]
-            num_p[i] = self.state["n_p"]
-            num_m[i] = self.state["n_m"]
-            num_f[i] = self.state["n_f"]
+                # Store the data
+                prices[i] = self.state["p"]
+                fundamentals[i] = self.state["p_f"]
+                num_p[i] = self.state["n_p"]
+                num_m[i] = self.state["n_m"]
+                num_f[i] = self.state["n_f"]
 
         # Create history data structure
         history = {"prices": prices, "fundamentals": fundamentals, 
