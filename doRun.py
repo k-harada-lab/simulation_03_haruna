@@ -6,6 +6,7 @@ import pandas as pd
 import _pickle as pickle
 from model import *
 from utils import *
+from datetime import datetime
 
 np.random.seed(12345)
 
@@ -20,5 +21,7 @@ model = LuxMarchesiModel(state, params)
 history = model.simulate(totalT, 1)
 
 # Save the data
-with open("./files/simul0.pkl", "wb") as f:
+timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+filename = f"./files/tmp/simul{timestamp}.pkl"
+with open(filename, "wb") as f:
     pickle.dump(history, f)

@@ -9,7 +9,6 @@ class LuxMarchesiModel:
         self.last_prices = [self.state["p"]]
         self.price_change = 0
 
-
     def excessDemand(self):
         """
         Function to compute the excess demand of the asset
@@ -28,8 +27,7 @@ class LuxMarchesiModel:
         D = D_c + D_f
 
         return D
-
-      
+ 
     def changeFundamental(self):
         """
         Function to change the fundamental value of the asset
@@ -44,7 +42,6 @@ class LuxMarchesiModel:
         self.state["p_f"] = p_f[0]
         return
     
-
     def changePrice(self):
         """
         Changes the price of the asset
@@ -75,8 +72,7 @@ class LuxMarchesiModel:
         self.price_change = (p - self.last_prices[0])/0.2 #### 
         
         return
-            
-    
+              
     def updateGroups(self):
         """
         Fluxes between the fundamentalists and the noise traders
@@ -133,7 +129,6 @@ class LuxMarchesiModel:
 
         return
   
-
     def updateChartists(self):
         """
         Changes of opinion of the noise traders
@@ -174,7 +169,6 @@ class LuxMarchesiModel:
 
         return
     
-
     def oneStep(self):
         """
         Defines one full step of the model
@@ -185,7 +179,6 @@ class LuxMarchesiModel:
         self.changeFundamental()
         return
     
-
     def simulate(self, t, deltaT):
         """
         Simulate the model for a given time period
@@ -223,7 +216,6 @@ class LuxMarchesiModel:
         
         return history
     
-
     def __str__(self):
         return str(self.state)
     
