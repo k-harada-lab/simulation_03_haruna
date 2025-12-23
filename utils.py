@@ -114,7 +114,7 @@ def plotTS(history, args):
     state, params, time = args
     fig, ax = plt.subplots(1, 1, figsize=(20, 8))
     colors = sns.color_palette("Set2", 2)
-    cutoff = (1000, 1100)
+    cutoff = (0, 30)
     fontsize = 25
 
     # Plot the price and the fundamental value
@@ -184,7 +184,7 @@ def plotPopulation(history, args):
     fig, ax = plt.subplots(1, 1, figsize=(20, 8))
     fontsize = 25
     N = state["n_p"] + state["n_m"] + state["n_f"]
-    cutoff = (1000, 1500)
+    cutoff = (0, 30)
     colors_pop = sns.color_palette("husl", 3)
 
     ax.plot(time[cutoff[0]:cutoff[1]], history["optimists"][cutoff[0]:cutoff[1]]/N, lw=3, color=colors_pop[1], label="optimists")
