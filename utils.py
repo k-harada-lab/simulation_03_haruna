@@ -13,7 +13,7 @@ from datetime import datetime
 # =====================================================================
 
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-filename = f"./files/tmp/simul{timestamp}.pkl"
+filename = timestamp
 
 def logReturns(prices, tau, norm=True):
     """
@@ -137,7 +137,7 @@ def plotTS(history, args):
     inset_ax.tick_params(axis='both', which='minor', labelsize=fontsize*0.6)
     inset_ax.set_title("Zoomed in", fontsize=fontsize*1.3*0.8)
 
-    fig.savefig("./images/tmp/filename/TS.png", format='png')
+    fig.savefig(f"./images/tmp/{filename}_TS.png", format='png')
     return
 
 
@@ -175,7 +175,7 @@ def plotLogReturns(history, args):
     ax2.tick_params(axis='both', which='minor', labelsize=fontsize*0.8)
     ax2.set_title("Distributions", fontsize=fontsize*1.3)
 
-    fig.savefig("./images/tmp/filename/LogReturns.png", format='png')
+    fig.savefig(f"./images/tmp/{filename}_LogReturns.png", format='png')
     return
 
 
@@ -200,7 +200,7 @@ def plotPopulation(history, args):
     legend.set_title("Agent type", prop={"size": fontsize})
     legend.set_alpha(1)
 
-    fig.savefig("./images/tmp/filename/Population.png", format='png')
+    fig.savefig(f"./images/tmp/{filename}_Population.png", format='png')
     return
 
 
@@ -248,7 +248,7 @@ def plotECDF(history, args):
     ax[1].tick_params(axis='both', which='minor', labelsize=fontsize*0.8)
     ax[1].set_xlim(-0.1, 0.1)
 
-    fig.savefig("./images/tmp/filename/ECDF.png", format='png')
+    fig.savefig(f"./images/tmp/{filename}_ECDF.png", format='png')
     return
 
 
@@ -297,7 +297,7 @@ def plotDFA(history, args):
     ax[1].set_title("DFA | absolute returns", fontsize=fontsize*1.3)
     ax[1].legend(loc="upper left", fontsize=fontsize)
 
-    fig.savefig("./images/tmp/filename/DFA.png", format='png')
+    fig.savefig(f"./images/tmp/{filename}_DFA.png", format='png')
     return
 
 
@@ -357,7 +357,7 @@ def animateXZ(history, args):
     ani = FuncAnimation(fig, update, frames=frames, init_func=init, blit=True, interval=100)
 
     # Save the animation as a GIF (optional)
-    ani.save('./images/tmp/filename/ComplexWalk.gif', writer='pillow', fps=20)
+    ani.save(f"./images/tmp/{filename}_ComplexWalk.gif", writer='pillow', fps=20)
 
 
 def plotACF(history, args):
@@ -380,5 +380,5 @@ def plotACF(history, args):
     ax.tick_params(axis='both', which='major', labelsize=20)
     ax.tick_params(axis='both', which='minor', labelsize=20)
 
-    fig.savefig("./images/tmp/filename/ACF.png", format='png')
+    fig.savefig(f"./images/tmp/{filename}_ACF.png", format='png')
     return
